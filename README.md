@@ -70,7 +70,7 @@ server.request(client,"event")
     .on_error(function(data){ }) //data: { type: "timeout" }
     .on_finally(function(){ })
 client.request("event") //same as above
-    .on_response(function(){ })
+    .on_response(function(response){ })
 
 //close connection
 server.stop();
