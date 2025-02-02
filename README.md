@@ -2,7 +2,7 @@
 
 TCP. UDP. You want it? It's your my friend. As long as you have enough bandwidth.
 
-This system is intended to simplify netcode in GameMaker as much as possible, so I never have to rewrite my netcode again. 
+This system is intended to simplify creating client/server netcode in GameMaker. 
 
 It may change as I use it and think of more features.
 
