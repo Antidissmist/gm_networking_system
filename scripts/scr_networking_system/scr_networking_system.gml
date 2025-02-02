@@ -1,4 +1,8 @@
-
+/*
+*	GM networking system | v1.0.0
+*	Github: https://github.com/Antidissmist/gm_networking_system
+*	Author: Antidissmist
+*/
 
 
 #macro NET_VERSION 1

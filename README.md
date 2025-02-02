@@ -6,6 +6,14 @@ This system is intended to simplify netcode in GameMaker as much as possible, so
 
 Made in GameMaker v2024.6.1.208, so should be compatible with modern versions.
 
+## How do i get it
+
+You can download the project files with the demo, and the .yymps (just [the script](https://github.com/Antidissmist/gm_networking_system/blob/main/scripts/scr_networking_system/scr_networking_system.gml)) in the [Releases](https://github.com/Antidissmist/gm_networking_system/releases) tab.
+
+Demo screenshot:
+![demo_screenshot](https://github.com/user-attachments/assets/f9f5cbd4-5e8c-44af-9440-b22104347adf)
+(Using [MultiClient](https://github.com/tabularelf/MultiClient) and [ImGui_GM](https://github.com/nommiin/ImGui_GM))
+
 ## Quick Setup
 
 ### server-side:
