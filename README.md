@@ -4,6 +4,8 @@ TCP. UDP. You want it? It's your my friend. As long as you have enough bandwidth
 
 This system is intended to simplify netcode in GameMaker as much as possible, so I never have to rewrite my netcode again. 
 
+It may change as I use it and think of more features.
+
 Made in GameMaker v2024.6.1.208, so should be compatible with modern versions.
 
 ## How do i get it
