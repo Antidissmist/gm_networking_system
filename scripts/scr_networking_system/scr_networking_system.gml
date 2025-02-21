@@ -1,5 +1,5 @@
 /*
-*	GM networking system | v1.0.0
+*	GM networking system | v1.0.1
 *	Github: https://github.com/Antidissmist/gm_networking_system
 *	Author: Antidissmist
 */
@@ -199,11 +199,14 @@ function net_interface() constructor {
 		}
 	}
 	///@desc simply calls an event
-	static run_event = function(type,data=undefined) {
-		receive_packet({
-			type,
-			data,
-		});
+	static run_event = function(type,data=undefined,from=undefined) {
+		receive_packet(
+			{
+				type,
+				data,
+			},
+			from
+		);
 	}
 	
 	///@desc start a new callback
@@ -218,6 +221,7 @@ function net_interface() constructor {
 	}
 	///@desc removes finished callbacks
 	static callbacks_check = function() {
+		if !ds_exists(callbacks,ds_type_list) return;
 		var len = ds_list_size(callbacks);
 		var callback;
 		for(var i=len-1; i>=0; i--) {
@@ -241,6 +245,9 @@ function net_interface() constructor {
 		if !net_functions.is_socket(socket) {
 			show_error("invalid socket!",true);
 		}
+		if !net_functions.event_type_is_valid(type) {
+			show_error("invalid event type!",true);
+		}
 		var buff = NET_BUFFER;
 		//var size = net_write_data(type,data,buff);
 		var size = net_write_json({ type, data });
@@ -260,6 +267,9 @@ function net_interface() constructor {
 		if !net_functions.is_socket(socket) {
 			show_error("invalid socket!",true);
 		}
+		if !net_functions.event_type_is_valid(type) {
+			show_error("invalid event type!",true);
+		}
 		var buff = NET_BUFFER;
 		//var size = net_write_data(type,data,buff);
 		var size = net_write_json({ type, data });
@@ -278,6 +288,9 @@ function net_interface() constructor {
 	static _helper_request = function(socket,type,data,response_func=do_nothing,retries=NET_PACKET_RETRY_COUNT,reuse_reqid=undefined) {
 		if !net_functions.is_socket(socket) {
 			show_error("invalid socket!",true);
+		}
+		if !net_functions.event_type_is_valid(type) {
+			show_error("invalid event type!",true);
 		}
 		
 		var reqid = reuse_reqid ?? request_id;
@@ -352,6 +365,7 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 	
 	
 	is_open = false;
+	is_lan_broadcasting = false;
 	
 	socket_tcp = undefined;
 	socket_udp = undefined;
@@ -483,10 +497,12 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 	///@desc start/stop broadcasting server info over LAN
 	static broadcast_to_lan = function(state=true,_port=port_lan_broadcast) {
 		time_source_destroy_safe(ts_lan_broadcast);
+		is_lan_broadcasting = false;
 		if state {
 			if !is_open {
 				return;
 			}
+			is_lan_broadcasting = true;
 			port_lan_broadcast = _port;
 			var callback = function(){				
 				//send server info (packet has ip)
@@ -561,6 +577,16 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 	}
 	static clients_foreach = function(func) {
 		array_foreach(client_array,func);
+	}
+	static get_clients_filter = function(filter_func) {
+		return array_filter(client_array,filter_func);
+	}
+	static get_clients_except = function(except_client) {
+		static dat = { except_client: undefined };
+		dat.except_client = except_client;
+		return get_clients_filter(method(dat,function(client){
+			return client != except_client;
+		}));
 	}
 	static clients_clear = function() {
 		clients_init();
@@ -1141,7 +1167,11 @@ function net_write_json(struct,buff=NET_BUFFER) {
 	struct[$ NET_KEY_PACKET_TYPE] ??= NET_PACKET_TYPES.normal;
 	var jstr = json_stringify(struct);
 	var bytelen = string_byte_length(jstr)+1;
-	buffer_poke(buff,0,buffer_string,jstr);
+	buffer_seek(buff,buffer_seek_start,0);
+	var status = buffer_write(buff,buffer_string,jstr);
+	if status<0 {
+		show_error($"network buffer_write error! buffer size: {bytelen}",true);
+	}
 	return bytelen;
 }
 
