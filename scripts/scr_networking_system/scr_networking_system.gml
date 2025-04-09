@@ -1,5 +1,5 @@
 /*
-*	GM networking system | v1.0.1
+*	GM networking system | v1.0.2
 *	Github: https://github.com/Antidissmist/gm_networking_system
 *	Author: Antidissmist
 */
@@ -381,6 +381,7 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 	on_client_connected = do_nothing; // (client struct)
 	get_lan_server_info = do_nothing; //returns relevant info (name, player count) for lan broadcast
 	track_ping = true; //keep track of ping and autokick clients with too high ping
+	validate_auth_data = return_true; // (any data) validate their account or something
 	
 	ts_ping = undefined;
 	ts_lan_broadcast = undefined;
@@ -400,6 +401,12 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 		if !net_system.version_compatible(vers,NET_VERSION) {
 			allowed = false;
 			message = "client outdated!";
+		}
+		
+		var auth_data = dat[$ "auth"];
+		if !validate_auth_data(auth_data) {
+			allowed = false;
+			message = "login failed!";
 		}
 		
 		return {
@@ -769,6 +776,7 @@ function net_client() : net_interface() constructor {
 	port = 0;
 	is_connecting = false;
 	is_connected = false;
+	auth_data = undefined; // account or something
 	
 	uuid = undefined;
 	
@@ -848,12 +856,13 @@ function net_client() : net_interface() constructor {
 	}
 	
 	///@desc connect to a server
-	static connect = function(_ip,_port=NET_PORT_DEFAULT) {
+	static connect = function(_ip,_port=NET_PORT_DEFAULT,_auth_data=undefined) {
 		
 		check_sockets();
 		
 		ip = _ip;
 		port = _port;
+		auth_data = _auth_data;
 		
 		is_connecting = true;
 		
@@ -927,7 +936,8 @@ function net_client() : net_interface() constructor {
 	static _on_tcp_connect = function() {
 		
 		request(NET_EVENTS.connect_setup,{
-			version: NET_VERSION
+			version: NET_VERSION,
+			auth: auth_data,
 		})
 		//server responds
 		.on_response(function(response){
@@ -1214,7 +1224,7 @@ function return_true(){ return true; }
 function net_log(val) {
 	show_debug_message(string(val));
 }
-
+#macro net_log_warning net_log
 
 
 
