@@ -45,7 +45,7 @@ NET_PACKET_TYPES = {
 
 
 
-function net_functions() constructor {
+function net_system() constructor {
 	
 	//checkers
 	static version_compatible = function(client,server) {
@@ -90,7 +90,7 @@ function net_functions() constructor {
 	}
 	
 }
-new net_functions(); //static init
+new net_system(); //static init
 
 
 
@@ -142,8 +142,8 @@ function net_interface() constructor {
 		var data = packet[$ "data"];
 		var reqid = packet[$ "reqid"]; //only if it's a request
 		
-		if !net_functions.event_type_is_valid(type)
-		|| !net_functions.event_data_is_valid(data)
+		if !net_system.event_type_is_valid(type)
+		|| !net_system.event_data_is_valid(data)
 		{
 			if !is_undefined(from) {
 				_on_invalid_packet(from);
@@ -242,10 +242,10 @@ function net_interface() constructor {
 	
 	///@desc send TCP data to a socket
 	static _helper_send_tcp = function(socket,type,data,retries=NET_PACKET_RETRY_COUNT) {
-		if !net_functions.is_socket(socket) {
+		if !net_system.is_socket(socket) {
 			show_error("invalid socket!",true);
 		}
-		if !net_functions.event_type_is_valid(type) {
+		if !net_system.event_type_is_valid(type) {
 			show_error("invalid event type!",true);
 		}
 		var buff = NET_BUFFER;
@@ -264,10 +264,10 @@ function net_interface() constructor {
 	}
 	///@desc send UDP data to a socket
 	static _helper_send_udp = function(socket,ip,port,type,data,retries=NET_PACKET_RETRY_COUNT) {
-		if !net_functions.is_socket(socket) {
+		if !net_system.is_socket(socket) {
 			show_error("invalid socket!",true);
 		}
-		if !net_functions.event_type_is_valid(type) {
+		if !net_system.event_type_is_valid(type) {
 			show_error("invalid event type!",true);
 		}
 		var buff = NET_BUFFER;
@@ -286,10 +286,10 @@ function net_interface() constructor {
 	}
 	///@desc request something and get a reply
 	static _helper_request = function(socket,type,data,response_func=do_nothing,retries=NET_PACKET_RETRY_COUNT,reuse_reqid=undefined) {
-		if !net_functions.is_socket(socket) {
+		if !net_system.is_socket(socket) {
 			show_error("invalid socket!",true);
 		}
-		if !net_functions.event_type_is_valid(type) {
+		if !net_system.event_type_is_valid(type) {
 			show_error("invalid event type!",true);
 		}
 		
@@ -392,12 +392,12 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 		var message = ""; 
 		
 		var vers = dat[$ "version"];
-		if !net_functions.version_is_valid(vers) {
+		if !net_system.version_is_valid(vers) {
 			allowed = false;
 			message = "invalid version!";
 		}
 		
-		if !net_functions.version_compatible(vers,NET_VERSION) {
+		if !net_system.version_compatible(vers,NET_VERSION) {
 			allowed = false;
 			message = "client outdated!";
 		}
@@ -414,7 +414,7 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 		
 		var port = async_load[? "port"];
 		var uuid = dat[$ "uuid"];
-		if !net_functions.uuid_is_valid(uuid) {
+		if !net_system.uuid_is_valid(uuid) {
 			//politely ask them to disconnect
 			_helper_send_udp(socket_udp,async_load[? "ip"],port,NET_EVENTS.disconnected,{ reason: "invalid uuid!" },0);
 			return;
@@ -438,10 +438,11 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 	},false);
 	
 	_on_invalid_packet = function(from) {
-		if net_functions.is_client(from) {
+		if net_system.is_client(from) {
 			client_kick(from,"Invalid packet!");
 		}
 	}
+	
 	
 	///@desc opens the server for connections
 	static start = function() {
@@ -597,7 +598,7 @@ function net_server(_port=NET_PORT_DEFAULT,_max_clients=8) : net_interface() con
 			socket_tcp: sock,
 			ip: async_load[? "ip"],
 			port: undefined, //get from udp
-			uuid: net_functions.create_uuid(client_uuid_map), //unique id
+			uuid: net_system.create_uuid(client_uuid_map), //unique id
 			ping: 0, //milliseconds
 			_ping_last: 0,
 			connected: true, //basically whether their tcp socket is connected
@@ -771,6 +772,7 @@ function net_client() : net_interface() constructor {
 	
 	uuid = undefined;
 	
+	serverfrom_value = "server"; // (value or function) what to pass in when receving a packet from the server
 	
 	
 	//default handlers
@@ -796,7 +798,6 @@ function net_client() : net_interface() constructor {
 	_get_reply_socket = function() {
 		return socket_tcp;
 	};
-	
 	
 	ts_udp_setup = undefined;
 	//tries to send a first udp packet to the server, so the server has our udp port
@@ -896,7 +897,8 @@ function net_client() : net_interface() constructor {
 						return; //not for us
 					}
 					
-					receive_packet(pack,"server");
+					var serverfrom = is_callable(serverfrom_value) ? serverfrom_value() : serverfrom_value;
+					receive_packet(pack,serverfrom);
 				}break;
 				
 				case network_type_non_blocking_connect:{
@@ -1003,7 +1005,7 @@ function net_lan_listener(_port=NET_PORT_LAN_BROADCAST_DEFAULT) constructor {
 				}
 				
 				packet[$ "ip"] = async_load[? "ip"];
-				packet[$ "compatible"] = net_functions.version_compatible(NET_VERSION,packet[$ "version"]);
+				packet[$ "compatible"] = net_system.version_compatible(NET_VERSION,packet[$ "version"]);
 				
 				var serv_id = $"{packet.ip}:{packet.server_port}";
 				if !variable_struct_exists(server_ip_map,serv_id) {
@@ -1153,6 +1155,24 @@ function net_promise_on_each_error(promise_array,on_error) {
 }
 
 
+///@desc ok it's the same as a promise but whatever
+function net_observable() constructor {
+	listeners = [];
+	
+	static listen = function(func) {
+		array_push(listeners,func);
+		return self;
+	}
+	
+	static call = function(args=[]) {
+		var len = array_length(listeners);
+		for(var i=0; i<len; i++) {
+			method_call(listeners[i],args);
+		}
+	}
+}
+
+
 //useful functions
 function net_write_data(type,data_struct=undefined,buff=NET_BUFFER) {
 	var str = {
@@ -1176,7 +1196,7 @@ function net_write_json(struct,buff=NET_BUFFER) {
 }
 
 function net_socket_close(sock) {
-	if net_functions.is_socket(sock) {
+	if net_system.is_socket(sock) {
 		network_destroy(sock);
 	}
 }
