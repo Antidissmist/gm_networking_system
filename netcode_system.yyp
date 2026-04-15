@@ -1,8 +1,8 @@
 {
-  "$GMProject":"",
+  "$GMProject":"v1",
   "%Name":"netcode_system",
   "AudioGroups":[
-    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -18,11 +18,12 @@
     {"$GMFolder":"","%Name":"Scripts","folderPath":"folders/Scripts.yy","name":"Scripts","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Sprites","folderPath":"folders/Sprites.yy","name":"Sprites","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
+  "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[],
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.6.2.162",
+    "IDEVersion":"2024.14.4.222",
   },
   "name":"netcode_system",
   "resources":[
@@ -39,6 +40,7 @@
     {"id":{"name":"scr_MultiClient","path":"scripts/scr_MultiClient/scr_MultiClient.yy",},},
     {"id":{"name":"scr_networking_system","path":"scripts/scr_networking_system/scr_networking_system.yy",},},
     {"id":{"name":"shdImGui","path":"shaders/shdImGui/shdImGui.yy",},},
+    {"id":{"name":"sp_bg","path":"sprites/sp_bg/sp_bg.yy",},},
     {"id":{"name":"sp_client","path":"sprites/sp_client/sp_client.yy",},},
     {"id":{"name":"sp_letter","path":"sprites/sp_letter/sp_letter.yy",},},
     {"id":{"name":"sp_server","path":"sprites/sp_server/sp_server.yy",},},

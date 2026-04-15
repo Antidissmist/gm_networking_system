@@ -10,6 +10,7 @@ var winflags = 0
 | ImGuiWindowFlags.NoMove
 //| ImGuiWindowFlags.NoBackground
 //| ImGuiWindowFlags.AlwaysAutoResize
+ImGui.SetNextWindowBgAlpha(0.75);
 
 		
 var ret = ImGui.Begin("debug menu", true, winflags, ImGuiReturnMask.Both);
@@ -54,7 +55,10 @@ ImGui.SetNextWindowSize(wid,hei);
 var winflags = 0
 | ImGuiWindowFlags.NoTitleBar
 | ImGuiWindowFlags.NoResize
-| ImGuiWindowFlags.NoMove
+| ImGuiWindowFlags.NoMove;
+
+ImGui.SetNextWindowBgAlpha(0.75);
+
 var ret = ImGui.Begin("action log", true, winflags, ImGuiReturnMask.Both);
 	
 if (ret & ImGuiReturnMask.Return) {

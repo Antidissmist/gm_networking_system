@@ -31,8 +31,8 @@ letter_from_x = room_width/2-100;
 letter_from_y = -20;
 
 
-client.on(NET_EVENTS.any,function(data){
-	create_letter(letter_to_x,letter_to_y,x,y);
+client.on(NET_EVENTS.any,function(data,from){
+	create_letter(letter_to_x,letter_to_y,x,y,data);
 });
 
 
@@ -43,21 +43,24 @@ imgui_step = function() {
 	
 	if client.is_connected {
 		if ImGui.Button("send tcp") {
-			client.send_udp("test_data",{ things: 100, stuff: [1,5,2,3,4] });
-			create_letter(letter_x,letter_y,letter_to_x,letter_to_y);
+			var dat = { things: 100, stuff: [1,5,2,3,4] };
+			client.send_udp("test_data",dat);
+			create_letter(letter_x,letter_y,letter_to_x,letter_to_y,dat);
 		}
 		if ImGui.Button("send udp") {
-			client.send_udp("test_data",{ things: 100, stuff: [1,5,2,3,4] });
-			create_letter(letter_x,letter_y,letter_to_x,letter_to_y);
+			var dat = { things: 100, stuff: [1,5,2,3,4] };
+			client.send_udp("test_data",dat);
+			create_letter(letter_x,letter_y,letter_to_x,letter_to_y,dat);
 		}
 		if ImGui.Button("request") {
 		
-			client.request("req_test",{ type: "money" })
+			var dat = { type: "money" };
+			client.request("req_test",dat)
 			.on_response(function(data){
 				log($"requested {data} money from server");
 			})
 		
-			create_letter(letter_x,letter_y,letter_to_x,letter_to_y);
+			create_letter(letter_x,letter_y,letter_to_x,letter_to_y,dat);
 		}
 		if ImGui.Button("request (timeout)") {
 		

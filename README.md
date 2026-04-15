@@ -1,4 +1,4 @@
-# GM networking system v1.0.0
+# GM networking system v1.0.3
 
 TCP. UDP. You want it? It's your my friend. As long as you have enough bandwidth.
 
@@ -21,8 +21,8 @@ Demo screenshot:
 ### server-side:
 ```js
 //create event
-server = new net_server(port,max_players);
-server.start();
+server = new net_server();
+server.start(port,max_players);
 
 server.on("hello",function(data,from_client){
     show_debug_message("hello, " + data.message); //hello, world!

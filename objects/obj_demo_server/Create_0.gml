@@ -46,8 +46,8 @@ letter_to_y = -20;
 letter_from_x = room_width/2-100;
 letter_from_y = -20;
 
-server.on(NET_EVENTS.any,function(data){
-	create_letter(letter_to_x,letter_to_y,x,y);
+server.on(NET_EVENTS.any,function(data,from){
+	create_letter(letter_to_x,letter_to_y,x,y,data);
 });
 
 imgui_step = function() {
@@ -58,8 +58,9 @@ imgui_step = function() {
 	
 	if server.is_open {
 		if ImGui.Button("hello all") {
-			server.send(NET_ALL_CLIENTS,"hello",{ message: "world!" });
-			create_letter(letter_x,letter_y,letter_to_x,letter_to_y);
+			var dat = { message: "world!" };
+			server.send(NET_ALL_CLIENTS,"hello",dat);
+			create_letter(letter_x,letter_y,letter_to_x,letter_to_y,dat);
 		}
 	
 		if server.client_count > 0 {
@@ -114,8 +115,9 @@ imgui_step = function() {
 		ImGui.Text($"ping: {client.ping}ms");
 		
 		if ImGui.Button($"hello client {index}") {
-			server.send(client,"hello",{ message: $"client {index}" });
-			create_letter(letter_x,letter_y,letter_to_x,letter_to_y);
+			var dat = { message: $"client {index}" }
+			server.send(client,"hello",dat);
+			create_letter(letter_x,letter_y,letter_to_x,letter_to_y,dat);
 		}
 		
 	});

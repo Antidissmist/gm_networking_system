@@ -6,7 +6,7 @@ function log(str) {
 }
 
 
-function create_letter(xfrom,yfrom,xto,yto) {
-	instance_create_depth(xfrom,yfrom,-5,obj_letter,{ targx: xto, targy: yto });
+function create_letter(xfrom,yfrom,xto,yto,label="") {
+	instance_create_depth(xfrom,yfrom,-5,obj_letter,{ targx: xto, targy: yto, label: string(label) });
 }
 
