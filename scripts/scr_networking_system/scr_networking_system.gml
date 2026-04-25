@@ -1,21 +1,26 @@
 /*
-*	GM networking system | v1.0.3 | edited 4/15/26
+*	GM networking system | v1.0.4 | edited 4/18/26
 *	Github: https://github.com/Antidissmist/gm_networking_system
 *	Author: Antidissmist
 */
-///feather ignore GM1019
+///@feather ignore GM1019
 
+#region config/init
 
 #macro NET_VERSION 1
 #macro NET_IP_DEFAULT "127.0.0.1"
 #macro NET_PORT_DEFAULT 6510
 #macro NET_PORT_LAN_BROADCAST_DEFAULT 6511
-#macro NET_LAN_BROADCAST_FREQUENCY_SECONDS 3 //how often to broadcast our info (ip/port) over LAN
-#macro NET_PACKET_RETRY_COUNT 3 //number of times to retry sending a packet before we give up and close the connection
+//how often to broadcast our info (ip/port) over LAN
+#macro NET_LAN_BROADCAST_FREQUENCY_SECONDS 3
+//number of times to retry sending a packet before we give up and close the connection
+#macro NET_PACKET_RETRY_COUNT 3
 #macro NET_PACKET_RETRY_FREQUENCY_SECONDS 1
-#macro NET_REQUEST_TIMEOUT_SECONDS 5 //time before a request times out and returns on_error
+//time before a request times out and returns on_error
+#macro NET_REQUEST_TIMEOUT_SECONDS 5
 #macro NET_PING_FREQUENCY_SECONDS 5
-#macro NET_AUTOKICK_MAX_PING_MS 5_000 //if a client's ping exceeds this, they are kicked. -1 to disable.
+//if a client's ping exceeds this, they are kicked. -1 to disable.
+#macro NET_AUTOKICK_MAX_PING_MS 5_000
 #macro NET_ALL_CLIENTS "all"
 #macro NET_CALLBACK_FINISH "__done"
 
@@ -47,8 +52,9 @@ NET_PACKET_TYPES = {
 	lan_broadcast: "lanb",
 };
 
+#endregion
 
-
+///@desc Contains general useful functions
 function net_system() constructor {
 	
 	//checkers
@@ -124,18 +130,11 @@ function net_system() constructor {
 		return is_callable(val) && val!=net_noop;
 	}
 }
-function net_noop(){}
-function net_return_true(){ return true; }
 new net_system(); //static init
 
 
-
-
-
-
-///@desc parent for something that does network things
+///@desc Parent for something that does network things
 function net_interface() constructor {
-	
 	
 	request_id = 0; //id to associate a request with a reply
 	reply_promises = {}; //functions to be called when we get a reply
@@ -148,6 +147,8 @@ function net_interface() constructor {
 		return from.socket_tcp;
 	};
 	
+	#region events
+	
 	///@desc Adds a handler to the list of things called on this event
 	/// Handler args: ( data, from )
 	///@param {string} eventtype
@@ -159,6 +160,7 @@ function net_interface() constructor {
 			clearable,
 		});
 	}
+	///@param {string} eventtype
 	///@desc clears all (clearable) event handlers for this event type
 	static clear_event = function(type) {
 		var arr = event_handlers[$ type];
@@ -252,6 +254,10 @@ function net_interface() constructor {
 		);
 	}
 	
+	#endregion
+	
+	#region callbacks
+	
 	///@desc start a new callback
 	static callback_create = function(period,reps,callback,args=undefined) {
 		if reps==0 return undefined;
@@ -284,6 +290,10 @@ function net_interface() constructor {
 		ds_list_clear(callbacks);
 	}
 	
+	#endregion
+	
+	#region send helpers
+	
 	///@desc send TCP data to a socket
 	///@param {Id.Socket} socket
 	static _helper_send_tcp = function(socket,type,data,retries=NET_PACKET_RETRY_COUNT) {
@@ -300,7 +310,12 @@ function net_interface() constructor {
 		if status<0 {
 			if retries > 0 {
 				net_log("TCP send failed! retrying...");
-				callback_create(NET_PACKET_RETRY_FREQUENCY_SECONDS,1,method(self,_helper_send_tcp),[socket,type,data,retries-1]);
+				callback_create(
+					NET_PACKET_RETRY_FREQUENCY_SECONDS,
+					1,
+					method(self,_helper_send_tcp),
+					[socket,type,data,retries-1]
+				);
 				run_event(NET_EVENTS.packet_retry);
 			}
 			else {
@@ -325,7 +340,12 @@ function net_interface() constructor {
 		if status<0 {
 			if retries > 0 {
 				net_log("UDP send failed! retrying...");
-				callback_create(NET_PACKET_RETRY_FREQUENCY_SECONDS,1,method(self,_helper_send_udp),[socket,ip,port,type,data,retries-1]);
+				callback_create(
+					NET_PACKET_RETRY_FREQUENCY_SECONDS,
+					1,
+					method(self,_helper_send_udp),
+					[socket,ip,port,type,data,retries-1]
+				);
 				run_event(NET_EVENTS.packet_retry);
 			}
 			else {
@@ -337,7 +357,14 @@ function net_interface() constructor {
 	///@desc request something and get a reply
 	///@param {Id.Socket} socket
 	///@returns {Struct.net_promise} promise
-	static _helper_request = function(socket,type,data,response_func=net_noop,retries=NET_PACKET_RETRY_COUNT,reuse_reqid=undefined) {
+	static _helper_request = function(
+		socket,
+		type,
+		data,
+		response_func=net_noop,
+		retries=NET_PACKET_RETRY_COUNT,
+		reuse_reqid=undefined
+	) {
 		if !net_system.is_socket(socket) {
 			show_error("invalid socket!",true);
 		}
@@ -368,7 +395,12 @@ function net_interface() constructor {
 		if status<0 {
 			if retries > 0 {
 				net_log("request send failed! retrying...");
-				callback_create(NET_PACKET_RETRY_FREQUENCY_SECONDS,1,method(self,_helper_request),[socket,type,data,response_func,retries-1,reqid]);
+				callback_create(
+					NET_PACKET_RETRY_FREQUENCY_SECONDS,
+					1,
+					method(self,_helper_request),
+					[socket,type,data,response_func,retries-1,reqid]
+				);
 				run_event(NET_EVENTS.packet_retry);
 			}
 			else {
@@ -390,6 +422,8 @@ function net_interface() constructor {
 		return promise;
 	}
 	
+	#endregion
+	
 	static _cleanup_common = function() {
 		
 		callbacks_clear();
@@ -397,6 +431,7 @@ function net_interface() constructor {
 		
 	}
 	
+	#region default events
 	
 	on(NET_EVENTS.ping,function(){
 		return "pong";
@@ -418,15 +453,20 @@ function net_interface() constructor {
 		net_log("packet send failed for the last time!");
 	},false);
 	
+	#endregion
+	
 }
+
 function net_server() : net_interface() constructor {
 	
-	
+	//init variables
 	is_open = false;
 	is_lan_broadcasting = false;
 	
 	socket_tcp = undefined;
 	socket_udp = undefined;
+	ts_ping = undefined;
+	ts_lan_broadcast = undefined;
 	
 	clients_init();
 	
@@ -434,6 +474,8 @@ function net_server() : net_interface() constructor {
 	port_lan_broadcast = NET_PORT_LAN_BROADCAST_DEFAULT;
 	max_clients = undefined;
 	
+	
+	//configurable
 	on_stopped = net_noop; //(reason) when the server must stop for some reason (not on cleanup)
 	on_client_disconnected = net_noop; // (client struct)
 	on_client_connected = net_noop; // (client struct)
@@ -443,12 +485,17 @@ function net_server() : net_interface() constructor {
 		static info = { success: true, message: "Success!" };
 		return info;
 	};
-	init_client_uuid = function(client,generated_uuid) { //(client_struct,generated_uuid) -> uuid		after login & validate, create or load their uuid
+	///@desc (client_struct,generated_uuid) -> uuid    after login & validate, create or load their uuid
+	init_client_uuid = function(client,generated_uuid) {
 		return generated_uuid; //by default, just use a newly generated uuid
 	}
+	_on_invalid_packet = function(from) {
+		if net_system.is_client(from) {
+			client_kick(from,"Invalid packet!");
+		}
+	}
 	
-	ts_ping = undefined;
-	ts_lan_broadcast = undefined;
+	#region default events
 	
 	//client asked to setup connection
 	on(NET_EVENTS.connect_setup,function(dat,clientfrom){
@@ -530,11 +577,7 @@ function net_server() : net_interface() constructor {
 		on_stopped("Packet failed!");
 	},false);
 	
-	_on_invalid_packet = function(from) {
-		if net_system.is_client(from) {
-			client_kick(from,"Invalid packet!");
-		}
-	}
+	#endregion
 	
 	static _on_ping_response = function(data,from_client) {
 		from_client.ping = ((get_timer() - from_client._ping_last)/1000);
@@ -574,7 +617,12 @@ function net_server() : net_interface() constructor {
 				var promise_arr = request(NET_ALL_CLIENTS,NET_EVENTS.ping);
 				net_promise_on_each_response(promise_arr,_on_ping_response);
 			};
-			ts_ping = time_source_create(time_source_global,NET_PING_FREQUENCY_SECONDS,time_source_units_seconds,_pingfunc,[],-1);
+			ts_ping = time_source_create(
+				time_source_global,
+				NET_PING_FREQUENCY_SECONDS,
+				time_source_units_seconds,
+				_pingfunc,[],-1
+			);
 			time_source_start(ts_ping);
 			_pingfunc(); //call immediately
 		}
@@ -625,13 +673,20 @@ function net_server() : net_interface() constructor {
 					broadcast_to_lan(false);
 				}
 			};
-			ts_lan_broadcast = time_source_create(time_source_global,NET_LAN_BROADCAST_FREQUENCY_SECONDS,time_source_units_seconds,callback,[],-1);
+			ts_lan_broadcast = time_source_create(
+				time_source_global,
+				NET_LAN_BROADCAST_FREQUENCY_SECONDS,
+				time_source_units_seconds,
+				callback,[],-1
+			);
 			
 			//start immediately
 			callback();
 			time_source_start(ts_lan_broadcast);
 		}
 	}
+	
+	#region client methods
 	
 	///@returns {Struct.net_client_struct} client
 	static client_get_by_socket = function(sock) {
@@ -725,6 +780,8 @@ function net_server() : net_interface() constructor {
 		return client;
 	}
 	
+	#endregion
+	
 	///@desc handles async event
 	static on_async_networking = function() {
 		
@@ -806,6 +863,8 @@ function net_server() : net_interface() constructor {
 		
 	}
 	
+	#region send methods
+	
 	enum __net_server_send_type {
 		_udp,
 		_tcp,
@@ -813,7 +872,13 @@ function net_server() : net_interface() constructor {
 	}
 	
 	///@desc send some type of data to some clients. if request, return a promise or array of promises.
-	static _helper_server_send = function(to_client,filter_func=net_return_true,req_type=__net_server_send_type._tcp,type,data=undefined) {
+	static _helper_server_send = function(
+		to_client,
+		filter_func=net_return_true,
+		req_type=__net_server_send_type._tcp,
+		type,
+		data=undefined
+	) {
 		//multiple clients
 		if to_client==NET_ALL_CLIENTS {
 			to_client = client_array;
@@ -870,6 +935,8 @@ function net_server() : net_interface() constructor {
 		return _helper_server_send(to_client,filter_func,__net_server_send_type._req,type,data);
 	}
 	
+	#endregion
+	
 	///@desc stops and cleans up dynamic resources
 	static cleanup = function() {
 		_cleanup_common();
@@ -900,7 +967,15 @@ function net_client() : net_interface() constructor {
 	track_ping = true; //whether to simply keep track of our ping to the server
 	ts_ping = undefined;
 	
-	//default handlers
+	_on_invalid_packet = function() {
+		//run_event(NET_EVENTS.disconnected,{ reason: "Invalid packet received!" }); //actually don't disconnect
+	}
+	_get_reply_socket = function() {
+		return socket_tcp;
+	};
+	
+	#region default events
+	
 	on(NET_EVENTS.connect_failed,function(reason){
 		net_log_warning($"Client connect failed! {reason}");
 		disconnect();
@@ -923,18 +998,18 @@ function net_client() : net_interface() constructor {
 					ping = ((get_timer()-_ping_last)/1000);
 				});
 			};
-			ts_ping = time_source_create(time_source_global,NET_PING_FREQUENCY_SECONDS,time_source_units_seconds,_pingfunc,[],-1);
+			ts_ping = time_source_create(
+				time_source_global,
+				NET_PING_FREQUENCY_SECONDS,
+				time_source_units_seconds,
+				_pingfunc,[],-1
+			);
 			time_source_start(ts_ping);
 			_pingfunc(); //call immediately
 		}
 	},false);
 	
-	_on_invalid_packet = function() {
-		//run_event(NET_EVENTS.disconnected,{ reason: "Invalid packet received!" }); //actually don't disconnect
-	}
-	_get_reply_socket = function() {
-		return socket_tcp;
-	};
+	#endregion
 	
 	ts_udp_setup = undefined;
 	udp_setup_tries = 0;
@@ -1121,7 +1196,7 @@ function net_client() : net_interface() constructor {
 	
 }
 
-///@desc a server-side struct that holds data about a client
+///@desc A server-side struct that holds data about a client
 function net_client_struct(_uuid=undefined,socket=undefined,_ip=undefined) constructor {
 	socket_tcp = socket;
 	ip = _ip;
@@ -1147,7 +1222,7 @@ function net_client_struct(_uuid=undefined,socket=undefined,_ip=undefined) const
 	}
 }
 
-///@desc listens for servers broadcasted over LAN and gets their info
+///@desc Listens for servers broadcasted over LAN and gets their info
 function net_lan_listener(_port=NET_PORT_LAN_BROADCAST_DEFAULT) constructor {
 	
 	port = _port;
@@ -1203,6 +1278,8 @@ function net_lan_listener(_port=NET_PORT_LAN_BROADCAST_DEFAULT) constructor {
 	
 }
 
+#region utility
+
 ///@desc calls a function some time later
 function net_callback(_period,_reps,_callback,_args=undefined) constructor {
 	
@@ -1247,6 +1324,8 @@ function net_callback(_period,_reps,_callback,_args=undefined) constructor {
 	}
 	
 }
+
+#region promises
 
 ///@desc calls a function when it's ready
 function net_promise() constructor {
@@ -1334,6 +1413,7 @@ function net_promise_on_each_error(promise_array,on_error) {
 	}
 }
 
+#endregion
 
 ///@desc ok it's the same as a promise but whatever
 function net_observable() constructor {
@@ -1371,8 +1451,13 @@ function net_observable() constructor {
 	}
 }
 
+#endregion
 
-//useful functions
+#region useful
+
+function net_noop(){}
+function net_return_true(){ return true; }
+
 function net_write_data(type,data_struct=undefined,buff=NET_BUFFER) {
 	var str = {
 		type: type
@@ -1408,7 +1493,7 @@ function net_log(val) {
 }
 #macro net_log_warning net_log
 
-
+#endregion
 
 
 
