@@ -1,7 +1,5 @@
 
 
-
-
 action_log = ds_list_create();
 log_action = function(str) {
 	ds_list_add(action_log,str);
@@ -10,8 +8,6 @@ log_action = function(str) {
 		ds_list_delete(action_log,0);
 	}
 }
-
-
 ImGui.__Initialize();
 
 

@@ -1,4 +1,4 @@
-# GM networking system v1.0.0
+# GM networking system v1.0.3
 
 TCP. UDP. You want it? It's your my friend. As long as you have enough bandwidth.
 
@@ -6,7 +6,7 @@ This system is intended to simplify creating client/server netcode in GameMaker.
 
 It may change as I use it and think of more features.
 
-Made in GameMaker v2024.6.1.208, so should be compatible with modern versions.
+Made in GameMaker LTS 2026.
 
 ## How do i get it
 
@@ -21,8 +21,8 @@ Demo screenshot:
 ### server-side:
 ```js
 //create event
-server = new net_server(port,max_players);
-server.start();
+server = new net_server();
+server.start(port,max_players);
 
 server.on("hello",function(data,from_client){
     show_debug_message("hello, " + data.message); //hello, world!
@@ -113,13 +113,13 @@ At some point listener.server_array will look something like this:
 ```
 Some more things to know about:
 ```js
-server_or_client.on(NET_EVENTS.packet_failed); //sending a packet failed multiple times, maybe quit to menu
+server_or_client.on(NET_EVENTS.packet_failed,func); //sending a packet failed multiple times, maybe quit to menu
 //client:
 client.on(NET_EVENTS.connected,func); //we can start sending gameplay related stuff
 client.on(NET_EVENTS.disconnected,func); //lost connection or kicked, quit to menu
 client.on(NET_EVENTS.connect_failed,func); //failed trying to connect to server, quit to menu?
 client.is_connected //boolean
-client.is_connecting //bolean; "waiting for server..."
+client.is_connecting //bolean; good to show a "waiting for server..."
 client.uuid //a unique string you can tell clients apart with.
 //server methods:
 server.on_client_connected = function(client){}; //"player joined the game!"
