@@ -147,6 +147,8 @@ function net_interface() constructor {
 		return from.socket_tcp;
 	};
 	
+	_debug_send_callback = undefined;
+	
 	#region events
 	
 	///@desc Adds a handler to the list of things called on this event
@@ -303,6 +305,9 @@ function net_interface() constructor {
 		if !net_system.event_type_is_valid(type) {
 			show_error("invalid event type!",true);
 		}
+		if !is_undefined(_debug_send_callback) {
+			_debug_send_callback(type,data);
+		}
 		var buff = NET_BUFFER;
 		//var size = net_write_data(type,data,buff);
 		var size = net_write_json({ type, data });
@@ -332,6 +337,9 @@ function net_interface() constructor {
 		}
 		if !net_system.event_type_is_valid(type) {
 			show_error("invalid event type!",true);
+		}
+		if !is_undefined(_debug_send_callback) {
+			_debug_send_callback(type,data);
 		}
 		var buff = NET_BUFFER;
 		//var size = net_write_data(type,data,buff);
@@ -370,6 +378,9 @@ function net_interface() constructor {
 		}
 		if !net_system.event_type_is_valid(type) {
 			show_error("invalid event type!",true);
+		}
+		if !is_undefined(_debug_send_callback) {
+			_debug_send_callback(type,data);
 		}
 		
 		var reqid = reuse_reqid ?? request_id;
@@ -586,7 +597,7 @@ function net_server() : net_interface() constructor {
 		}
 	}
 	
-	///@desc opens the server for connections
+	///@desc Opens the server for connections
 	static start = function(_port=NET_PORT_DEFAULT,_max_clients=8) {
 		
 		port = _port;
@@ -627,7 +638,7 @@ function net_server() : net_interface() constructor {
 			_pingfunc(); //call immediately
 		}
 	}
-	///@desc closes the server and disconnects all clients
+	///@desc Closes the server and disconnects all clients
 	static stop = function() {
 		
 		//tell clients to disconnect
@@ -644,7 +655,7 @@ function net_server() : net_interface() constructor {
 		clients_clear();
 		is_open = false;
 	}
-	///@desc start/stop broadcasting server info over LAN
+	///@desc Start/stop broadcasting server info over LAN
 	static broadcast_to_lan = function(state=true,_port=port_lan_broadcast) {
 		net_system.destroy_time_source_safe(ts_lan_broadcast);
 		is_lan_broadcasting = false;
@@ -726,6 +737,7 @@ function net_server() : net_interface() constructor {
 		
 		client.obs_cleanup.call_arg(client);
 	}
+	///@desc Removes a client from the connection
 	///@param {Struct.net_client_struct} client
 	static client_kick = function(client,reason="You have been kicked.") {
 		send(client,NET_EVENTS.disconnected,{ reason });
@@ -784,7 +796,6 @@ function net_server() : net_interface() constructor {
 	
 	///@desc handles async event
 	static on_async_networking = function() {
-		
 		var received_data = false;
 		var is_udp = false;
 		
@@ -794,15 +805,11 @@ function net_server() : net_interface() constructor {
 			var sock = async_load[? "socket"]; //connect/disconnect ONLY
 			switch (async_load[? "type"]) {
 				
-				
 				//got connection
 				case network_type_connect:
 				case network_type_non_blocking_connect:{
-					
 					client_create(sock);
-					
 				}break;
-				
 				
 				//got disconnect
 				case network_type_disconnect:{
@@ -817,15 +824,11 @@ function net_server() : net_interface() constructor {
 					}
 				}break;
 				
-				
 				case network_type_data:
 					received_data = true;
 					is_udp = true;
 				break;
-				
-				
 			}
-			
 		}
 		//tcp data
 		else {
@@ -942,13 +945,10 @@ function net_server() : net_interface() constructor {
 		_cleanup_common();
 		
 		stop();
-		
 	}
-	
 }
 
 function net_client() : net_interface() constructor {
-	
 	
 	socket_tcp = undefined;
 	socket_udp = undefined;
@@ -1066,7 +1066,11 @@ function net_client() : net_interface() constructor {
 		is_connected = false;
 	}
 	
-	///@desc connect to a server
+	///@desc Connect to a server
+	///@param {string} ip
+	///@param {real} port
+	///@param {any} auth_data Any authentication info for the client, like their playername or account.
+	/// Checked by the net_server.validate_auth_data method.
 	static connect = function(_ip=NET_IP_DEFAULT,_port=NET_PORT_DEFAULT,_auth_data=undefined) {
 		
 		net_system.set_timeout_connection_seconds(timeout_connect_seconds);
@@ -1099,49 +1103,47 @@ function net_client() : net_interface() constructor {
 	static on_async_networking = function() {
 		
 		var n_id = async_load[? "id"];
-		if n_id==socket_tcp || n_id==socket_udp {
+		if n_id!=socket_tcp && n_id!=socket_udp return;
 			
-			switch (async_load[? "type"]) {
+		switch (async_load[? "type"]) {
+			
+			case network_type_data:{
+				var buffer = async_load[? "buffer"];
+				try {
+					var jstr = buffer_peek(buffer, 0, buffer_string );
+					var pack = json_parse(jstr);
+				}
+				catch(e) {
+					net_log($"invalid packet: {e}");
+					_on_invalid_packet();
+					return;
+				}
 				
-				case network_type_data:{
-					var buffer = async_load[? "buffer"];
-					try {
-						var jstr = buffer_peek(buffer, 0, buffer_string );
-						var pack = json_parse(jstr);
-					}
-					catch(e) {
-						net_log($"invalid packet: {e}");
-						_on_invalid_packet();
-						return;
-					}
-					
-					if pack[$ NET_KEY_PACKET_TYPE] != NET_PACKET_TYPES.normal {
-						return; //not for us
-					}
-					
-					///@feather ignore GM1021
-					var serverfrom = is_callable(serverfrom_value) ? serverfrom_value() : serverfrom_value;
-					receive_packet(pack,serverfrom);
-				}break;
+				if pack[$ NET_KEY_PACKET_TYPE] != NET_PACKET_TYPES.normal {
+					return; //not for us
+				}
 				
-				case network_type_non_blocking_connect:{
-					if async_load[? "socket"]==socket_tcp {
-						if async_load[? "succeeded"] {
-							_on_tcp_connect();
-						}
-						else {
-							run_event(NET_EVENTS.connect_failed);
-						}
-					}
-				}break;
+				///@feather ignore GM1021
+				var serverfrom = is_callable(serverfrom_value) ? serverfrom_value() : serverfrom_value;
+				receive_packet(pack,serverfrom);
+			}break;
 				
-				case network_type_disconnect:{
-					if async_load[? "socket"]==socket_tcp {
-						run_event(NET_EVENTS.disconnected);
+			case network_type_non_blocking_connect:{
+				if async_load[? "socket"]==socket_tcp {
+					if async_load[? "succeeded"] {
+						_on_tcp_connect();
 					}
-				}break;
-				
-			}
+					else {
+						run_event(NET_EVENTS.connect_failed);
+					}
+				}
+			}break;
+			
+			case network_type_disconnect:{
+				if async_load[? "socket"]==socket_tcp {
+					run_event(NET_EVENTS.disconnected);
+				}
+			}break;
 			
 		}
 	}
