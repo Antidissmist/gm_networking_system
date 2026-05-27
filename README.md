@@ -13,7 +13,7 @@ Made in GameMaker LTS 2026.
 You can download the project files with the demo, and the .yymps (just [the script](https://github.com/Antidissmist/gm_networking_system/blob/main/scripts/scr_networking_system/scr_networking_system.gml)) in the [Releases](https://github.com/Antidissmist/gm_networking_system/releases) tab.
 
 Demo screenshot:
-![demo_screenshot](https://github.com/user-attachments/assets/f9f5cbd4-5e8c-44af-9440-b22104347adf)
+![demo_screenshot](https://github.com/user-attachments/assets/03e77aab-3641-4dc9-80eb-8cfa059f0feb)
 (Using [MultiClient](https://github.com/tabularelf/MultiClient) and [ImGui_GM](https://github.com/nommiin/ImGui_GM))
 
 ## Quick Setup
